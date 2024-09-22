@@ -1,3 +1,5 @@
 openai
 streamlit
 pymupdf
+reportlab
+python-docx
