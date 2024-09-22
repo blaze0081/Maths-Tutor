@@ -7,10 +7,7 @@ from docx import Document
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-# Load configuration from config.toml
-config = toml.load("config.toml")
-
-openai.api_key = config["openai"]["api_key"]
+openai.api_key = st.secrets["openai"]["api_key"]
 
 querry_context = ""
 
