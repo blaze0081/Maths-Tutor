@@ -11,27 +11,35 @@ openai.api_key = config["openai"]["api_key"]
 
 # Function to extract text from a PDF file
 @st.cache_data(show_spinner=False, ttl=3600)
-def extract_text_from_pdf(pdf_path):
-    with fitz.open(pdf_path) as doc:
+def extract_text_from_pdf(file):
+    # Open the file using a file-like object (not a file path)
+    with fitz.open(stream=file.read(), filetype="pdf") as doc:
         text = ""
         for page in doc:
             text += page.get_text()
     return text
 
 # Function to query the document and maintain the conversation context
-def query_document(question, conversation_history, language):
+def query_document(question, conversation_history, language, document_text=None):
     conversation_history.append({"role": "user", "content": question})
+    
+    # If a document is uploaded, append the extracted text
+    if document_text:
+        system_message = f"You are a math tutor which replies in {language}. Use the following document context to answer the question. The document text is: {document_text}."
+    else:
+        system_message = f"You are a math tutor which replies in {language}."
+    
     response = openai.ChatCompletion.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": f"You are a math tutor which replies in {language}. Give responses in latex."},
+            {"role": "system", "content": system_message},
         ] + conversation_history
     )
+    
     answer = response.choices[0].message["content"]
     conversation_history.append({"role": "assistant", "content": answer})
     
     return answer
-
 
 # Main function for the Streamlit app
 def main():
@@ -46,13 +54,12 @@ def main():
     if "document_text" not in st.session_state:
         st.session_state.document_text = ""
 
-    # Sidebar for chapter selection and submit button
+    # Sidebar for language selection and reset button
     with st.sidebar:
         st.header("Select language")
 
         language = st.radio("",
-        ["***English***", "***Hindi***"],index=0)
-
+            ["***English***", "***Hindi***"], index=0)
 
         # Add a reset button in the sidebar
         if st.button("Reset Conversation"):
@@ -61,20 +68,31 @@ def main():
             st.session_state.document_text = ""
             st.rerun()  # Refresh the app to reset the UI
 
+    # File uploader to upload a PDF document
+    uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
+
+    # Process the uploaded PDF file and extract text
+    if uploaded_file is not None:
+        with st.spinner('Extracting text from PDF...'):
+            st.session_state.document_text = extract_text_from_pdf(uploaded_file)
+        st.success("PDF text extracted successfully!")
+
     # Display chat messages from history
     for message in st.session_state.conversation_history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
+
     # Input box for the user's question
-    if prompt := st.chat_input("Ask a question about this chapter:"):
+    if prompt := st.chat_input("Ask a question about the uploaded document or anything else:"):
         # Add user message to chat history and display it
         st.session_state.conversation_history.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
+
         # Get assistant response and update chat history
-        answer = query_document(prompt, st.session_state.conversation_history, language)
+        document_text = st.session_state.document_text if uploaded_file is not None else None
+        answer = query_document(prompt, st.session_state.conversation_history, language, document_text)
         with st.chat_message("assistant"):
-            print(answer)
             st.markdown(answer)
 
 if __name__ == "__main__":
