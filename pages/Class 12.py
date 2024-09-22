@@ -4,9 +4,7 @@ import fitz  # PyMuPDF
 import toml
 import os
 
-# Load configuration from config.toml
-config = toml.load("config.toml")
-openai.api_key = config["openai"]["api_key"]
+openai.api_key = st.secrets["openai"]["api_key"]
 
 # Function to extract text from a PDF file
 @st.cache_data(show_spinner=False, ttl=3600)
