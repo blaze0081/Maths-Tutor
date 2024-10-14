@@ -47,6 +47,8 @@ def query_document(question, conversation_history, language, document_text=None)
             math_content = part[1:-1]  # Remove the $ symbols
             latex_math = convert_to_latex(math_content)
             processed_parts.append(f'$${latex_math}$$')
+        else:
+                processed_parts.append(part)
     
     processed_answer = ''.join(processed_parts)
     conversation_history.append({"role": "assistant", "content": processed_answer})
