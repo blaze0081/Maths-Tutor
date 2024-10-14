@@ -3,3 +3,4 @@ streamlit
 pymupdf
 reportlab
 python-docx
+google-cloud-translate
